@@ -25,6 +25,7 @@ if (( $EUID == 0 )); then
 fi
 
 # Preventing sudo timeout. See https://serverfault.com/a/833888
+
 trap "exit" INT TERM
 trap "kill 0" EXIT
 sudo -v || exit $?
@@ -34,19 +35,44 @@ while true; do
     sudo -nv
 done 2>/dev/null &
 
+# Checking Distribution
+
+print_info "Checking Distribution"
+
+DISTRIB_DESCR="Unknown"
+
+if command -v lsb_release &> /dev/null; then
+    DISTRIB_DESCR="$(lsb_release -sd)"
+fi
+
+if [[ $DISTRIB_DESCR == "Ubuntu 20.04"* ]]; then
+    print_info "Detected Distribution: $DISTRIB_DESCR [✓]"
+else
+    print_warn "This installation is recommended on 'Ubuntu 20.04 LTS'. Detected Distribution: $DISTRIB_DESCR"
+    print_choice "Do you wish to continue anyway?"
+    select opt in "Yes" "No"; do
+        case $opt in
+            "Yes")
+                break;;
+            "No")
+                exit;;
+        esac
+    done
+fi
+
 INSTALL_ROS=false
 
 print_info "Ardupilot with Gazebo plugins will be installed"
 print_choice "Do you wish to install ROS and MAVROS?"
-options=("Yes" "No" "Quit")
-select opt in "${options[@]}"; do
+select opt in "Yes" "No" "Quit"; do
     case $opt in
         "Yes")
             INSTALL_ROS=true
             break;;
+        "No")
+            break;;
         "Quit")
             exit;;
-        *) break;;
     esac
 done
 
